@@ -27,7 +27,7 @@ private class HTTPClientSpy: HTTPClient {
         messages[index].completion(.failure(error))
     }
     
-    func complete(withStatusCode: Int, data: Data = Data(), at index: Int = 0) {
+    func complete(withStatusCode: Int, data: Data, at index: Int = 0) {
         let response = HTTPURLResponse(url: requestedURLs[index],
                                        statusCode: withStatusCode,
                                        httpVersion: nil,
@@ -67,6 +67,11 @@ class RemoteFeedLoaderTests: XCTestCase {
         }
         
         return (item, json)
+    }
+    
+    private func makeItemsJSON(_ items: [[String: Any]]) -> Data {
+            let json = ["items": items]
+            return try! JSONSerialization.data(withJSONObject: json)
     }
     
     func test_init_doesNotRequestDataFromURL() {
@@ -126,7 +131,8 @@ class RemoteFeedLoaderTests: XCTestCase {
         sampleData.enumerated().forEach { index, code in
             
             expect(sut, toCompleteWith: .failure(.invalidData)) {
-                client.complete(withStatusCode: code, at: index)
+                let json = makeItemsJSON([])
+                client.complete(withStatusCode: code, data: json, at: index)
             }
         }
     }
