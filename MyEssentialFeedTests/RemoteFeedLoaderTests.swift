@@ -9,7 +9,7 @@ import XCTest
 import MyEssentialFeed
 
 private class HTTPClientSpy: HTTPClient {
-        
+    
     private var messages = [(url: URL, completion: (HTTPClientResult) -> Void)]()
     
     var requestedURLs: [URL] {
@@ -54,10 +54,25 @@ class RemoteFeedLoaderTests: XCTestCase {
         XCTAssertEqual(capturedResults, [result], file: file, line: line)
     }
     
+    private func makeItem(id: UUID, description: String? = nil, location: String? = nil, imageURL: URL) -> (model: FeedItem, json: [String: Any]) {
+        let item = FeedItem(id: id, description: description, location: location, imageURL: imageURL)
+        
+        let json = [
+            "id": item.id.uuidString,
+            "description": item.description,
+            "location": item.location,
+            "image": item.imageURL.absoluteString
+        ].reduce(into: [String:Any]()) { (acc,e) in
+            if let value = e.value { acc[e.key] = value }
+        }
+        
+        return (item, json)
+    }
+    
     func test_init_doesNotRequestDataFromURL() {
         //GIVEN
-//        let url = URL(string: "https://a-given-url.com")
-//        let _ = RemoteFeedLoader(url: url!, client: client)ffaaaaffsf
+        //        let url = URL(string: "https://a-given-url.com")
+        //        let _ = RemoteFeedLoader(url: url!, client: client)ffaaaaffsf
         let (_, client) = makeSUT()
         
         //THEN
@@ -92,10 +107,10 @@ class RemoteFeedLoaderTests: XCTestCase {
     
     func test_load_deliversErrorOnClientError() {
         let (sut, client) = makeSUT()
-//        This is stubbing as we are putting some behaviour into the client but thats incorrect way as we are spying the client too
-//        client.error = NSError(domain: "Test", code: 0)
+        //        This is stubbing as we are putting some behaviour into the client but thats incorrect way as we are spying the client too
+        //        client.error = NSError(domain: "Test", code: 0)
         
-//        var capturedError: RemoteFeedLoader.Error?
+        //        var capturedError: RemoteFeedLoader.Error?
         
         expect(sut, toCompleteWith: .failure(.connectivity)) {
             let clientError = NSError(domain: "Test", code: 0)
@@ -137,35 +152,12 @@ class RemoteFeedLoaderTests: XCTestCase {
     func test_load_deliversItemsOn200HTTPResponseWithJSONItems() {
         let (sut, client) = makeSUT()
         
-        let item1 = FeedItem(
-            id: UUID(),
-            description: nil,
-            location: nil,
-            imageURL: URL(string: "http://a-url.com")!)
-        
-        
-        let item1JSON = [
-            "id": item1.id.uuidString,
-            "image": item1.imageURL.absoluteString
-        ]
-        
-        let item2 = FeedItem(
-            id: UUID(),
-            description: "a description",
-            location: "a location",
-            imageURL: URL(string: "http://another-url.com")!)
-        
-        let item2JSON = [
-            "id": item2.id.uuidString,
-            "description": item2.description,
-            "location": item2.location,
-            "image": item2.imageURL.absoluteString
-        ]
+        let (item1,item1JSON) = makeItem(id: UUID(), imageURL: URL(string: "http://a-url.com")!)
+        let (item2,item2JSON) = makeItem(id: UUID(), description: "a description" , location: "a location", imageURL: URL(string: "http://another-url.com")!)
         
         let itemsJSON = [
             "items": [item1JSON, item2JSON]
         ]
-        
         expect(sut, toCompleteWith: .success([item1, item2])) {
             let json = try! JSONSerialization.data(withJSONObject: itemsJSON)
             client.complete(withStatusCode: 200, data: json)
@@ -174,5 +166,5 @@ class RemoteFeedLoaderTests: XCTestCase {
         
     }
     
-
+    
 }
